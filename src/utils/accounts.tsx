@@ -185,14 +185,34 @@ const precacheUserTokenAccounts = async (connection: Connection, owner?: PublicK
   });
 };
 
-// Provider component for managing accounts
-export function AccountsProvider({ children = null as any }) {
+// Inside AccountsProvider component
+const useNativeAccountInternal = () => {
   const connection = useConnection();
-  const { wallet, connected } = useWallet();
-  const [tokenAccounts, setTokenAccounts] = useState<TokenAccount[]>([]);
-  const [userAccounts, setUserAccounts] = useState<TokenAccount[]>([]);
-  const { nativeAccount } = useNativeAccount();
-  const { pools } = usePools();
+  const { wallet } = useWallet();
+  const [nativeAccount, setNativeAccount] = useState<AccountInfo<Buffer>>();
+
+  useEffect(() => {
+    if (!connection || !wallet?.publicKey) {
+      return;
+    }
+
+    connection.getAccountInfo(wallet.publicKey).then((acc) => {
+      if (acc) {
+        setNativeAccount(acc);
+      }
+    });
+    connection.onAccountChange(wallet.publicKey, (acc) => {
+      if (acc) {
+        setNativeAccount(acc);
+      }
+    });
+  }, [setNativeAccount, wallet, wallet.publicKey, connection]);
+
+  return { nativeAccount };
+};
+
+// Usage within AccountsProvider component
+const { nativeAccount } = useNativeAccountInternal();
 
   // Select user accounts
   const selectUserAccounts = useCallback(() => {
